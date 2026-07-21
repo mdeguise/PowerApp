@@ -1,0 +1,215 @@
+import { useState } from 'react';
+import { useWizard } from '../context/WizardContext';
+import { StepFooter } from '../components/StepFooter';
+import { SubmissionModal } from '../components/SubmissionModal';
+import { CheckCircleIcon, UserIcon, BriefcaseIcon, LockIcon, LaptopIcon, AppsIcon } from '../components/icons';
+import { SYSTEMES_ACCES, EQUIPEMENTS, APPLICATIONS, EMPLOYEE_DIRECTORY, REGLE_DE_PAYE_AUTRE } from '../data/catalogs';
+import { formatDateFr } from '../utils/formatDate';
+
+export function Step6Review() {
+  const { request, goToStep } = useWizard();
+  const { employee: e, access: a, equipment: eq, applications: apps } = request;
+  const selected = EMPLOYEE_DIRECTORY.find((emp) => emp.id === e.employeeId) ?? null;
+  const [showConfirmation, setShowConfirmation] = useState(false);
+
+  const nameFor = (catalog: { id: string; nom: string }[], id: string) => catalog.find((c) => c.id === id)?.nom ?? id;
+
+  const handleSubmit = () => {
+    setShowConfirmation(true);
+  };
+
+  return (
+    <div className="step-panel">
+      <div className="step-panel__header">
+        <span className="step-panel__icon">
+          <CheckCircleIcon style={{ width: 22, height: 22 }} />
+        </span>
+        <div>
+          <div className="step-panel__title">Révision et soumission</div>
+          <div className="step-panel__subtitle">Vérifiez les informations avant d'envoyer la demande</div>
+        </div>
+      </div>
+
+      <div className="review-section">
+        <div className="review-section__header">
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <UserIcon style={{ width: 15, height: 15 }} /> Employé
+          </span>
+          <span className="review-section__edit" onClick={() => goToStep(0)}>
+            Modifier
+          </span>
+        </div>
+        <div className="review-section__body">
+          <div>
+            <div className="review-item__label">Type de demande</div>
+            <div className="review-item__value">{request.typeDemande || '—'}</div>
+          </div>
+          <div>
+            <div className="review-item__label">Nom complet</div>
+            <div className="review-item__value">{selected ? `${selected.prenom} ${selected.nom}` : '—'}</div>
+          </div>
+          <div>
+            <div className="review-item__label">Numéro d'employé</div>
+            <div className="review-item__value">{selected?.numeroEmploye || '—'}</div>
+          </div>
+          <div>
+            <div className="review-item__label">Date d'entrée prévue</div>
+            <div className="review-item__value">{e.dateEntreePrevue ? formatDateFr(e.dateEntreePrevue) : '—'}</div>
+          </div>
+          <div>
+            <div className="review-item__label">Règle de paye</div>
+            <div className="review-item__value">{e.regleDePaye || '—'}</div>
+          </div>
+          {e.regleDePaye === REGLE_DE_PAYE_AUTRE && (
+            <div>
+              <div className="review-item__label">Précisions</div>
+              <div className="review-item__value">{e.regleDePayeCommentaire || '—'}</div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="review-section">
+        <div className="review-section__header">
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <BriefcaseIcon style={{ width: 15, height: 15 }} /> Poste et département
+          </span>
+          <span className="review-section__edit" onClick={() => goToStep(1)}>
+            Modifier
+          </span>
+        </div>
+        <div className="review-section__body">
+          <div>
+            <div className="review-item__label">Département</div>
+            <div className="review-item__value">{selected?.departement || '—'}</div>
+          </div>
+          <div>
+            <div className="review-item__label">Poste</div>
+            <div className="review-item__value">{selected?.poste || '—'}</div>
+          </div>
+          <div>
+            <div className="review-item__label">Code d'emploi</div>
+            <div className="review-item__value">{selected?.codeEmploi || '—'}</div>
+          </div>
+          <div>
+            <div className="review-item__label">Type d'employé</div>
+            <div className="review-item__value">{selected?.typeEmploi || '—'}</div>
+          </div>
+          <div>
+            <div className="review-item__label">Gestionnaire immédiat</div>
+            <div className="review-item__value">{selected?.gestionnaire || '—'}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="review-section">
+        <div className="review-section__header">
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <LockIcon style={{ width: 15, height: 15 }} /> Accès et comptes
+          </span>
+          <span className="review-section__edit" onClick={() => goToStep(2)}>
+            Modifier
+          </span>
+        </div>
+        <div className="review-section__body">
+          <div>
+            <div className="review-item__label">Systèmes et accès</div>
+            <div className="review-tag-list">
+              {a.systemes.length ? (
+                a.systemes.map((id) => (
+                  <span key={id} className="review-tag">
+                    {nameFor(SYSTEMES_ACCES, id)}
+                  </span>
+                ))
+              ) : (
+                <span className="review-item__value">Aucun accès sélectionné</span>
+              )}
+            </div>
+          </div>
+          {a.systemes.includes('badge') && (
+            <div>
+              <div className="review-item__label">Zones ou édifices requis</div>
+              <div className="review-item__value">{a.badgeZones || '—'}</div>
+            </div>
+          )}
+          <div>
+            <div className="review-item__label">Système POS et Hébergement</div>
+            <div className="review-tag-list">
+              {a.posHebergement.length ? (
+                a.posHebergement.map((nom) => (
+                  <span key={nom} className="review-tag">
+                    {nom}
+                  </span>
+                ))
+              ) : (
+                <span className="review-item__value">Aucun système sélectionné</span>
+              )}
+            </div>
+          </div>
+          <div>
+            <div className="review-item__label">Stationnement requis</div>
+            <div className="review-item__value">{a.stationnement || '—'}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="review-section">
+        <div className="review-section__header">
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <LaptopIcon style={{ width: 15, height: 15 }} /> Équipement
+          </span>
+          <span className="review-section__edit" onClick={() => goToStep(3)}>
+            Modifier
+          </span>
+        </div>
+        <div className="review-section__body">
+          <div className="review-tag-list">
+            {eq.equipements.length ? (
+              eq.equipements.map((id) => (
+                <span key={id} className="review-tag">
+                  {nameFor(EQUIPEMENTS, id)}
+                </span>
+              ))
+            ) : (
+              <span className="review-item__value">Aucun équipement sélectionné</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="review-section">
+        <div className="review-section__header">
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <AppsIcon style={{ width: 15, height: 15 }} /> Applications
+          </span>
+          <span className="review-section__edit" onClick={() => goToStep(4)}>
+            Modifier
+          </span>
+        </div>
+        <div className="review-section__body">
+          <div>
+            <div className="review-item__label">Applications sélectionnées</div>
+            <div className="review-tag-list">
+              {apps.applications.length ? (
+                apps.applications.map((id) => (
+                  <span key={id} className="review-tag">
+                    {nameFor(APPLICATIONS, id)}
+                  </span>
+                ))
+              ) : (
+                <span className="review-item__value">Aucune application sélectionnée</span>
+              )}
+            </div>
+          </div>
+          <div>
+            <div className="review-item__label">Autre logiciel requis</div>
+            <div className="review-item__value">{apps.autreLogiciel || '—'}</div>
+          </div>
+        </div>
+      </div>
+
+      <StepFooter onSubmit={handleSubmit} />
+      <SubmissionModal open={showConfirmation} onClose={() => setShowConfirmation(false)} />
+    </div>
+  );
+}
