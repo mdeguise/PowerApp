@@ -51,35 +51,43 @@ Set(gblFurthestStep, 1);
 Set(gblTypeDemande, "");
 
 // Mirrors OnboardingRequest, minus the multi-select array fields (handled as collections below)
-// and minus the confidential RH comment (kept separate — see scrCommentaires)
-Set(gblDemande, {
-    TypeDemande: "",
-    DemandePar: User().FullName,
-    Statut: "Brouillon",
-    EmployeSelectionne: First(Filter(EMPLOYE_LIST, false)),   // typed blank — see note below
-    DateEntreePrevue: Blank(),
-    RegleDePaye: Blank(),
-    RegleDePayeCommentaire: "",
-    BadgeZones: "",
-    StationnementRequis: "",
-    JustificationAcces: "",
-    NotesEquipement: "",
-    AutreLogicielRequis: "",
-    DerniereJournee: Blank(),
-    IndemniteVacances: Blank(),
-    RaisonArret: Blank(),
-    DetailsRaison: "",
-    Reembaucheriez: "",
-    CommentairesIT: "",
-    CommentairesParkingAcces: "",
-    CommentairesRedingote: ""
-});
-Set(gblCommentaireRH, "");
-
-// EmployeSelectionne can't be seeded with plain Blank() — Power Fx then has no schema to attach to that field,
-// and later Patch(gblDemande, {EmployeSelectionne: ThisItem}) (an EMPLOYE_LIST record) fails as "invalid arguments"
-// because the field's type was never established. First(Filter(EMPLOYE_LIST, false)) is the standard Power Fx idiom
-// for a typed blank — zero rows, so it evaluates to blank, but carries EMPLOYE_LIST's schema for type-checking.              // deliberately NOT part of gblDemande — see "Confidential RH comment" below
+// and minus the confidential RH comment (kept separate — see scrCommentaires).
+//
+// Every field below that isn't a plain "" or a literal string is seeded as a TYPED blank rather than bare Blank().
+// A bare Blank() inside a Set()-constructed record carries no type, so the field's type is locked in as ambiguous —
+// and any later Patch(gblDemande, {ThatField: <a real Date/record/etc.>}) then fails as "invalid arguments", because
+// the value being patched in doesn't match a type that was never established. First(Filter(Source, false)) is the
+// standard Power Fx idiom for a typed blank: zero rows, so it evaluates to blank, but still carries the source's
+// schema for type-checking. EmployeSelectionne borrows its type from EMPLOYE_LIST; the Date/Choice fields below
+// borrow theirs from the real Demandes columns they'll eventually be Patch()-ed into at submit time anyway.
+Set(gblDemande,
+    With(
+        {blankDemande: First(Filter(Demandes, false))},
+        {
+            TypeDemande: "",
+            DemandePar: User().FullName,
+            Statut: "Brouillon",
+            EmployeSelectionne: First(Filter(EMPLOYE_LIST, false)),
+            DateEntreePrevue: blankDemande.DateEntreePrevue,
+            RegleDePaye: blankDemande.RegleDePaye,
+            RegleDePayeCommentaire: "",
+            BadgeZones: "",
+            StationnementRequis: "",
+            JustificationAcces: "",
+            NotesEquipement: "",
+            AutreLogicielRequis: "",
+            DerniereJournee: blankDemande.DerniereJournee,
+            IndemniteVacances: blankDemande.IndemniteVacances,
+            RaisonArret: blankDemande.RaisonArret,
+            DetailsRaison: "",
+            Reembaucheriez: "",
+            CommentairesIT: "",
+            CommentairesParkingAcces: "",
+            CommentairesRedingote: ""
+        }
+    )
+);
+Set(gblCommentaireRH, "");   // deliberately NOT part of gblDemande — see "Confidential RH comment" below
 
 // Offboarding: multiple employees per request (mirrors offboarding.employeeIds: string[])
 ClearCollect(colEmployesOffboarding, EMPLOYE_LIST);
