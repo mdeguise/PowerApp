@@ -58,13 +58,19 @@ Set(gblTypeDemande, "");
 // and any later Patch(gblDemande, {ThatField: <a real Date/record/etc.>}) then fails as "invalid arguments", because
 // the value being patched in doesn't match a type that was never established. First(Filter(Source, false)) is the
 // standard Power Fx idiom for a typed blank: zero rows, so it evaluates to blank, but still carries the source's
-// schema for type-checking. EmployeSelectionne borrows its type from EMPLOYE_LIST; the Date/Choice fields below
-// borrow theirs from the real DEMANDES columns they'll eventually be Patch()-ed into at submit time anyway.
+// schema for type-checking. EmployeSelectionne borrows its type from EMPLOYE_LIST; the two Date fields below borrow
+// theirs from the real DEMANDES columns since there's no plain-literal equivalent for an empty Date.
 //
 // Data source name is DEMANDES (all caps) — that's the SharePoint list's actual title, and Power Fx data source
 // names are case-sensitive, so `Demandes` silently fails to resolve as a table (shows up as "Filter has invalid
 // arguments" rather than a clearer "not found" error). Also: Filter()'s SharePoint delegation rejects a bare
 // boolean literal as the predicate — ID < 0 is a real always-false comparison against a real column instead.
+//
+// RegleDePaye/IndemniteVacances/RaisonArret deliberately do NOT borrow from blankDemande the way the Date fields
+// do: DEMANDES' single-select Choice columns read back as a Record-shaped Choice type off a table row in this
+// connector, not plain Text — while every other use of these fields (dropdown .Selected.Value, <> "..." string
+// comparisons in the validation formulas below) assumes plain Text. Seeding with "" like the other Text fields
+// keeps the type consistent with how they're actually used everywhere else.
 Set(gblDemande,
     With(
         {blankDemande: First(Filter(DEMANDES, ID < 0))},
@@ -74,7 +80,7 @@ Set(gblDemande,
             Statut: "Brouillon",
             EmployeSelectionne: First(Filter(EMPLOYE_LIST, ID < 0)),
             DateEntreePrevue: blankDemande.DateEntreePrevue,
-            RegleDePaye: blankDemande.RegleDePaye,
+            RegleDePaye: "",
             RegleDePayeCommentaire: "",
             BadgeZones: "",
             StationnementRequis: "",
@@ -82,8 +88,8 @@ Set(gblDemande,
             NotesEquipement: "",
             AutreLogicielRequis: "",
             DerniereJournee: blankDemande.DerniereJournee,
-            IndemniteVacances: blankDemande.IndemniteVacances,
-            RaisonArret: blankDemande.RaisonArret,
+            IndemniteVacances: "",
+            RaisonArret: "",
             DetailsRaison: "",
             Reembaucheriez: "",
             CommentairesIT: "",
