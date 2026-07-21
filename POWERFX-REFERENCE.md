@@ -80,16 +80,32 @@ Set(gblCommentaireRH, "");              // deliberately NOT part of gblDemande �
 ClearCollect(colEmployesOffboarding, EMPLOYE_LIST);
 Clear(colEmployesOffboarding);
 
-// Multi-select choice fields — seeded from the DEMANDES list's own Choice column options,
-// so the option text lives in exactly one place (SharePoint), not duplicated into Power Fx.
-ClearCollect(colSystemesAcces, ForAll(Choices(Demandes.SystemesAcces), {Value: Value, Selected: false}));
-ClearCollect(colPOSHebergement, ForAll(Choices(Demandes.SystemePOSHebergement), {Value: Value, Selected: false}));
-ClearCollect(colApplications, ForAll(Choices(Demandes.Applications), {Value: Value, Selected: false}));
+// Multi-select choice fields — hardcoded rather than pulled from Choices(Demandes.*).
+// Choices() only works on single-select SharePoint Choice columns; it throws "invalid argument"
+// on any column with "allow multiple values" turned on, which is every one of these. Values below
+// were confirmed live against the real DEMANDES list (New Item form) — keep them in sync if the
+// SharePoint Choice options are ever edited, since nothing here re-derives them automatically.
+ClearCollect(colSystemesAcces,
+    {Value: "Compte AD/courriel", Selected: false},
+    {Value: "Accès VPN", Selected: false},
+    {Value: "Badge d'accès aux édifices", Selected: false}
+);
+ClearCollect(colPOSHebergement,
+    {Value: "RTP", Selected: false},
+    {Value: "SMS", Selected: false},
+    {Value: "OPERA", Selected: false},
+    {Value: "SYMPHONIE", Selected: false},
+    {Value: "APROPOS", Selected: false}
+);
+ClearCollect(colApplications,
+    {Value: "Microsoft 365", Selected: false},
+    {Value: "Teams", Selected: false},
+    {Value: "Dynamics 365", Selected: false}
+);
 
-// Equipements is the one exception: catalogs.ts groups equipment into categories
-// (Informatique / Télécommunications / Équipement de travail) for the step's section headers,
-// and a plain Choice column loses that grouping. Re-declared here with the category alongside it
-// instead of pulling from Choices(Demandes.Equipements).
+// Equipements needs the same hardcoding, plus a category alongside each value: catalogs.ts groups
+// equipment into categories (Informatique / Télécommunications / Équipement de travail) for the
+// step's section headers, which a plain Choice column has no room for either way.
 ClearCollect(colEquipements,
     {Value: "Ordinateur portable",              Categorie: "Informatique",              Selected: false},
     {Value: "Ordinateur de bureau",              Categorie: "Informatique",              Selected: false},
