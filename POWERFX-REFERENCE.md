@@ -233,6 +233,13 @@ Same pattern for `"Réactivation"` and `"Avis de terminaison ou mise à pied tem
 
 ### Onboarding/réactivation branch (`Visible = gblTypeDemande <> "Avis de terminaison ou mise à pied temporaire"`)
 
+Search uses `StartsWith()`, not a "contains anywhere" match like the prototype's `.includes()`. `EMPLOYE_LIST` has
+~1,955 rows — well past the default 500-row delegation limit — so the search predicate has to be delegable to
+SharePoint or results silently get truncated to whatever page loaded locally. Neither the `in` operator nor
+`Search()` delegates reliably to SharePoint in this environment (both were tried and rejected by Studio);
+`StartsWith()` is the one that's unambiguously delegable. Tradeoff: searching "leau" won't find "Bourbeau" anymore,
+only names/numbers that start with what's typed — an acceptable, common pattern for an employee picker.
+
 ```
 galResultats.Items = If(
     IsBlank(txtRecherche.Text),
@@ -240,7 +247,7 @@ galResultats.Items = If(
     FirstN(
         Filter(EMPLOYE_LIST,
             Employment_Status = "Active",
-            txtRecherche.Text in Title || txtRecherche.Text in Last_Name || txtRecherche.Text in First_Name
+            StartsWith(Title, txtRecherche.Text) || StartsWith(Last_Name, txtRecherche.Text) || StartsWith(First_Name, txtRecherche.Text)
         ),
         6
     )
@@ -275,7 +282,7 @@ galResultatsMulti.Items = If(
         Filter(EMPLOYE_LIST,
             Employment_Status = "Active",
             IsBlank(LookUp(colEmployesOffboarding, Title = EMPLOYE_LIST[@Title])),   // exclude already-added
-            txtRechercheMulti.Text in Title || txtRechercheMulti.Text in Last_Name || txtRechercheMulti.Text in First_Name
+            StartsWith(Title, txtRechercheMulti.Text) || StartsWith(Last_Name, txtRechercheMulti.Text) || StartsWith(First_Name, txtRechercheMulti.Text)
         ),
         6
     )
