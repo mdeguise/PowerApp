@@ -305,21 +305,30 @@ galResultatsMulti.Items = If(
     FirstN(
         Filter(EMPLOYE_LIST,
             Employment_Status = "Active",
-            IsBlank(LookUp(colEmployesOffboarding, Title = EMPLOYE_LIST[@Title])),   // exclude already-added
             StartsWith(Title, txtRechercheMulti.Text) || StartsWith(Last_Name, txtRechercheMulti.Text) || StartsWith(First_Name, txtRechercheMulti.Text)
         ),
         6
     )
 )
-galResultatsMulti.OnSelect (item) = Collect(colEmployesOffboarding, ThisItem); Reset(txtRechercheMulti)
+galResultatsMulti.OnSelect (item) =
+    If(
+        IsBlank(LookUp(colEmployesOffboarding, Title = ThisItem.Title)),
+        Collect(colEmployesOffboarding, ThisItem)
+    );
+    Reset(txtRechercheMulti)
 
 galSelectionnes.Items = colEmployesOffboarding
 btnRetirer.OnSelect (item) = Remove(colEmployesOffboarding, ThisItem)
 ```
 
-`[Numero < gblFurthestStep]` disambiguation (`EMPLOYE_LIST[@Title]`) may need adjusting once the real column/record
-scope is in front of you in Studio — this pattern is the standard workaround for filtering against a collection
-inside a `Filter()` over a different table.
+The "exclude already-added" check does **not** live inside `Filter()` — `LookUp()` against a local collection
+(`colEmployesOffboarding`) mixed into a `Filter()` predicate over a remote table (`EMPLOYE_LIST`) breaks delegation
+for the *entire* filter, not just that clause (delegation requires the whole predicate to translate into one
+server-side query). With ~1,955 rows in `EMPLOYE_LIST`, that would silently search only the first ~500. The guard
+moves to `OnSelect` instead — a single-record `LookUp()` against a small local collection, which is fine to be
+non-delegable since it only ever touches one row. Tradeoff: an already-added employee can still appear in the
+search results (rather than being filtered out), but clicking them again is a no-op — no duplicate gets added to
+`colEmployesOffboarding`.
 
 ## `scrPoste` (→ `Step2Position.tsx`) — read-only
 
