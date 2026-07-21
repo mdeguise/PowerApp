@@ -1,6 +1,18 @@
 # Gestion du cycle d'emploi - Tremblant
 
+Repo: **https://github.com/mdeguise/PowerApp**
+
 A working prototype (React + TypeScript, built with Vite) of a full employee lifecycle request tool: **Nouvelle intégration**, **Réactivation**, and **Avis de terminaison ou mise à pied temporaire** (offboarding), each as its own multi-step wizard sharing the same app shell.
+
+Working across two computers (this one and the office machine, used for the location-restricted Power Apps account): after making changes on either one, commit and push before switching —
+
+```
+git add -A
+git commit -m "describe the change"
+git push
+```
+
+and on the other machine, `git pull` before starting work, to stay in sync. The first time on a new machine, `git clone https://github.com/mdeguise/PowerApp.git`.
 
 ## Current state — decision made
 
