@@ -139,6 +139,8 @@ Permissions: inheritance from the site is broken. `POWERAPP FORMS Owners` keeps 
 
 Screen-by-screen, using this prototype as the reference for exact copy, field order, validation rules, and conditional logic (e.g., the "AUTRES..." pay rule reveals a comment box; selecting "Badge" reveals a zones field; the department-comments step only shows for the offboarding flow; step count/nav changes depending on `TypeDemande`).
 
+See [POWERFX-REFERENCE.md](POWERFX-REFERENCE.md) for the wizard's navigation, validation, and submission logic ported to Power Fx, screen by screen — a direct translation of `WizardContext.tsx` and `src/steps/*.tsx`, including the two spots (request numbering, attachment handling) that need a real decision made in Studio rather than a guess made on paper.
+
 ### 4. Share the app
 
 Share directly with a security group or specific users from Power Apps Studio/the maker portal — no Teams admin unblock needed, since this is a standard Canvas App using only the SharePoint connector.
