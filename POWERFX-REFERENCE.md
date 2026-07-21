@@ -59,15 +59,20 @@ Set(gblTypeDemande, "");
 // the value being patched in doesn't match a type that was never established. First(Filter(Source, false)) is the
 // standard Power Fx idiom for a typed blank: zero rows, so it evaluates to blank, but still carries the source's
 // schema for type-checking. EmployeSelectionne borrows its type from EMPLOYE_LIST; the Date/Choice fields below
-// borrow theirs from the real Demandes columns they'll eventually be Patch()-ed into at submit time anyway.
+// borrow theirs from the real DEMANDES columns they'll eventually be Patch()-ed into at submit time anyway.
+//
+// Data source name is DEMANDES (all caps) — that's the SharePoint list's actual title, and Power Fx data source
+// names are case-sensitive, so `Demandes` silently fails to resolve as a table (shows up as "Filter has invalid
+// arguments" rather than a clearer "not found" error). Also: Filter()'s SharePoint delegation rejects a bare
+// boolean literal as the predicate — ID < 0 is a real always-false comparison against a real column instead.
 Set(gblDemande,
     With(
-        {blankDemande: First(Filter(Demandes, false))},
+        {blankDemande: First(Filter(DEMANDES, ID < 0))},
         {
             TypeDemande: "",
             DemandePar: User().FullName,
             Statut: "Brouillon",
-            EmployeSelectionne: First(Filter(EMPLOYE_LIST, false)),
+            EmployeSelectionne: First(Filter(EMPLOYE_LIST, ID < 0)),
             DateEntreePrevue: blankDemande.DateEntreePrevue,
             RegleDePaye: blankDemande.RegleDePaye,
             RegleDePayeCommentaire: "",
@@ -93,7 +98,7 @@ Set(gblCommentaireRH, "");   // deliberately NOT part of gblDemande — see "Con
 ClearCollect(colEmployesOffboarding, EMPLOYE_LIST);
 Clear(colEmployesOffboarding);
 
-// Multi-select choice fields — hardcoded rather than pulled from Choices(Demandes.*).
+// Multi-select choice fields — hardcoded rather than pulled from Choices(DEMANDES.*).
 // Choices() only works on single-select SharePoint Choice columns; it throws "invalid argument"
 // on any column with "allow multiple values" turned on, which is every one of these. Values below
 // were confirmed live against the real DEMANDES list (New Item form) — keep them in sync if the
@@ -220,7 +225,7 @@ btnSoumettre.Visible = gblCurrentStep = NombreEtapes
 ```
 
 `Annuler` and `Enregistrer le brouillon` are inert in the prototype (no `onClick`) — **[decide in Studio]** whether
-"save as draft" actually needs to write a `Statut = "Brouillon"` item to `Demandes` now, or stays a placeholder.
+"save as draft" actually needs to write a `Statut = "Brouillon"` item to `DEMANDES` now, or stays a placeholder.
 
 ### `cmpSummarySidebar` (→ `SummarySidebar.tsx`)
 
@@ -272,7 +277,7 @@ btnChanger.OnSelect = Set(gblDemande, Patch(gblDemande, {EmployeSelectionne: Bla
 
 dtDateEntree.OnChange = Set(gblDemande, Patch(gblDemande, {DateEntreePrevue: dtDateEntree.SelectedDate}))
 
-ddRegleDePaye.Items = Choices(Demandes.RegleDePaye)
+ddRegleDePaye.Items = Choices(DEMANDES.RegleDePaye)
 ddRegleDePaye.OnChange = Set(gblDemande, Patch(gblDemande, {
     RegleDePaye: ddRegleDePaye.Selected.Value,
     RegleDePayeCommentaire: If(ddRegleDePaye.Selected.Value <> "AUTRES PRÉCISÉ DANS COMMENTAIRES", "", gblDemande.RegleDePayeCommentaire)
@@ -389,8 +394,8 @@ galTagsApplications.Items = Filter(colApplications, Selected).Value
 ```
 btnSoumettre.OnSelect =
     Patch(
-        Demandes,
-        Defaults(Demandes),
+        DEMANDES,
+        Defaults(DEMANDES),
         {
             Title: <numérotation — voir note ci-dessous>,
             TypeDemande: gblDemande.TypeDemande,
@@ -415,7 +420,7 @@ btnSoumettre.OnSelect =
 ```
 
 **[decide in Studio]** Request numbering: `createEmptyRequest()` hardcodes `"INT-2025-00024"` as a placeholder — the
-prototype never actually generates one. A real scheme (e.g. `"INT-" & Text(Year(Now())) & "-" & Text(CountRows(Demandes) + 1, "00000")`,
+prototype never actually generates one. A real scheme (e.g. `"INT-" & Text(Year(Now())) & "-" & Text(CountRows(DEMANDES) + 1, "00000")`,
 a SharePoint autonumber column, or a Power Automate flow triggered on item creation) needs to be chosen; `CountRows`
 on its own isn't safe against concurrent submissions if that matters here.
 
@@ -429,22 +434,22 @@ lblAvisMultiple.Visible = CountRows(colEmployesOffboarding) > 1
 
 dtDerniereJournee.OnChange = Set(gblDemande, Patch(gblDemande, {DerniereJournee: dtDerniereJournee.SelectedDate}))
 
-ddIndemniteVacances.Items = Choices(Demandes.IndemniteVacances)
+ddIndemniteVacances.Items = Choices(DEMANDES.IndemniteVacances)
 ddIndemniteVacances.OnChange = Set(gblDemande, Patch(gblDemande, {IndemniteVacances: ddIndemniteVacances.Selected.Value}))
 
-ddRaisonArret.Items = Choices(Demandes.RaisonArret)
+ddRaisonArret.Items = Choices(DEMANDES.RaisonArret)
 ddRaisonArret.OnChange = Set(gblDemande, Patch(gblDemande, {RaisonArret: ddRaisonArret.Selected.Value}))
 
 txtDetailsRaison.OnChange = Set(gblDemande, Patch(gblDemande, {DetailsRaison: txtDetailsRaison.Text}))
 
-ddReembaucheriez.Items = Choices(Demandes.Reembaucheriez)
+ddReembaucheriez.Items = Choices(DEMANDES.Reembaucheriez)
 ddReembaucheriez.OnChange = Set(gblDemande, Patch(gblDemande, {Reembaucheriez: ddReembaucheriez.Selected.Value}))
 ```
 
 **[decide in Studio]** Attachments: the prototype holds a plain `File[]` in memory (add/remove, nothing uploaded
 anywhere — there's no backend). In a Canvas App the natural match is the **Attachments control**, which binds
 directly to a SharePoint list item's native attachment collection — but that control needs an existing list item to
-attach to, and this screen runs *before* submit. Two workable approaches: (a) create the `Demandes` item as a
+attach to, and this screen runs *before* submit. Two workable approaches: (a) create the `DEMANDES` item as a
 `"Brouillon"` early (e.g. on first entry to `scrCessation`) so `Attachments1.Attachments` has something to bind to
 and gets patched to `"Soumise"` at final submit, or (b) keep files in a local collection through the wizard and only
 wire the Attachments control in on the review screen right before `Patch()`. Test both — attachment controls in
@@ -461,11 +466,11 @@ txtCommentaireRedingote.OnChange = Set(gblDemande, Patch(gblDemande, {Commentair
 
 **Confidential RH comment — kept out of `gblDemande` on purpose.** The README already decided the RH comment needs
 its own permission-restricted list (`Demandes - Commentaires RH`, shared only with `TRM-RH-ADM`) because SharePoint
-has no column-level security. Storing the comment in a variable that's never part of the `Demandes` Patch payload —
+has no column-level security. Storing the comment in a variable that's never part of the `DEMANDES` Patch payload —
 rather than in `gblDemande` alongside everything else and just "remembering" to exclude that one field at submit
 time — makes it structurally impossible to leak it into the shared list by a future editing mistake. The other three
 department comments (IT, stationnement/accès, redingote) aren't marked confidential in the prototype and go into
-`Demandes` normally.
+`DEMANDES` normally.
 
 ## `scrRevisionOffboarding` (→ `StepReviewOffboarding.tsx`)
 
@@ -486,8 +491,8 @@ btnSoumettre.OnSelect =
     With(
         { nouvelleDemande:
             Patch(
-                Demandes,
-                Defaults(Demandes),
+                DEMANDES,
+                Defaults(DEMANDES),
                 {
                     Title: <numérotation — voir note ci-dessus>,
                     TypeDemande: gblTypeDemande,
