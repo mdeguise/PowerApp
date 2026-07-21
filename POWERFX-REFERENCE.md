@@ -56,7 +56,7 @@ Set(gblDemande, {
     TypeDemande: "",
     DemandePar: User().FullName,
     Statut: "Brouillon",
-    EmployeSelectionne: Blank(),        // single Lookup record from EMPLOYE_LIST (onboarding/réactivation)
+    EmployeSelectionne: First(Filter(EMPLOYE_LIST, false)),   // typed blank — see note below
     DateEntreePrevue: Blank(),
     RegleDePaye: Blank(),
     RegleDePayeCommentaire: "",
@@ -74,7 +74,12 @@ Set(gblDemande, {
     CommentairesParkingAcces: "",
     CommentairesRedingote: ""
 });
-Set(gblCommentaireRH, "");              // deliberately NOT part of gblDemande — see "Confidential RH comment" below
+Set(gblCommentaireRH, "");
+
+// EmployeSelectionne can't be seeded with plain Blank() — Power Fx then has no schema to attach to that field,
+// and later Patch(gblDemande, {EmployeSelectionne: ThisItem}) (an EMPLOYE_LIST record) fails as "invalid arguments"
+// because the field's type was never established. First(Filter(EMPLOYE_LIST, false)) is the standard Power Fx idiom
+// for a typed blank — zero rows, so it evaluates to blank, but carries EMPLOYE_LIST's schema for type-checking.              // deliberately NOT part of gblDemande — see "Confidential RH comment" below
 
 // Offboarding: multiple employees per request (mirrors offboarding.employeeIds: string[])
 ClearCollect(colEmployesOffboarding, EMPLOYE_LIST);
