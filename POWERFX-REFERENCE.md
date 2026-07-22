@@ -279,9 +279,18 @@ btnSoumettre.Visible = gblCurrentStep = NombreEtapes
 
 ```
 lblProgression.Text = Text(gblCurrentStep) & " / " & Text(NombreEtapes) & " étapes"
-rectProgressFill.Width = Parent.Width * (gblCurrentStep / NombreEtapes)
 lblTypeDemande.Text = If(IsBlank(gblTypeDemande), "—", gblTypeDemande)
 lblStatut.Text = gblDemande.Statut
+```
+
+Progress bar: **Rectangle controls can't have children** — the track/fill pair can't be nested (fill inside track).
+Use a **GroupContainer** (`conProgressBar`, `Width` matching the card's content width, `Height` small e.g. `6`) as the
+wrapper, with the track Rectangle and fill Rectangle as **siblings** inside it, both positioned relative to the
+group rather than to each other:
+```
+conProgressBar — GroupContainer, Height: 6
+  rectProgressTrack — Rectangle, X: 0, Y: 0, Width: Parent.Width, Height: Parent.Height, Fill: clrBorder
+  rectProgressFill  — Rectangle, X: 0, Y: 0, Width: Parent.Width * (gblCurrentStep / NombreEtapes), Height: Parent.Height, Fill: clrTremblantRed
 ```
 
 ## `scrEmploye` (→ `Step1Employee.tsx`)
@@ -446,6 +455,10 @@ galTagsEquipements.Items = Filter(colEquipements, Selected).Value
 galTagsApplications.Items = Filter(colApplications, Selected).Value
 ```
 
+`Table.Value` (dot-projection on a table) does **not** flatten to plain text — each row of the result is still a
+`{Value: "..."}` record, just with the other columns dropped. So each tag gallery's template label needs
+**`ThisItem.Value`**, not bare `ThisItem`, to actually show the text.
+
 ### Submit
 
 ```
@@ -455,12 +468,20 @@ btnSoumettre.OnSelect =
         Defaults(DEMANDES),
         {
             Title: <numérotation — voir note ci-dessous>,
-            TypeDemande: gblDemande.TypeDemande,
-            Employes: [gblDemande.EmployeSelectionne],
-            Statut: "Soumise",
-            DemandePar: User().FullName,
+            TypeDemande: {Value: gblDemande.TypeDemande},
+            Employes: Table({Id: gblDemande.EmployeSelectionne.ID, Value: gblDemande.EmployeSelectionne.Title}),
+            Statut: {Value: "Soumise"},
+            DemandePar: {
+                '@odata.type': "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedUser",
+                Claims: "i:0#.f|membership|" & Lower(User().Email),
+                Department: "",
+                DisplayName: User().FullName,
+                Email: User().Email,
+                JobTitle: "",
+                Picture: ""
+            },
             DateEntreePrevue: gblDemande.DateEntreePrevue,
-            RegleDePaye: gblDemande.RegleDePaye,
+            RegleDePaye: {Value: gblDemande.RegleDePaye},
             RegleDePayeCommentaire: gblDemande.RegleDePayeCommentaire,
             SystemesAcces: Filter(colSystemesAcces, Selected).Value,
             BadgeZones: gblDemande.BadgeZones,
@@ -475,6 +496,21 @@ btnSoumettre.OnSelect =
     );
     Set(varConfirmationVisible, true)
 ```
+
+**Field shapes confirmed against the real SharePoint schema (`get_data_source_schema`), not guessed — this applies to
+every submit formula, onboarding and offboarding alike:**
+- **`DemandePar`** is a SharePoint **Person** column — needs the full claims record shown above, not `User().FullName`
+  (which is what `gblDemande.DemandePar` holds locally, fine for on-screen display, but not what the column accepts).
+- **`Employes`** is a multi-value **Lookup** column — needs a table of `{Id, Value}` records (`Id` = the SharePoint
+  item ID, `Value` = the looked-up display column, `Title` here since that's what `Employes` sources on), not raw
+  `EMPLOYE_LIST` rows. Onboarding/réactivation always has exactly one, hence wrapping the single selection in `Table(...)`.
+- **`TypeDemande`, `Statut`, `RegleDePaye`, `IndemniteVacances`, `RaisonArret`, `Reembaucheriez`** are all
+  single-select Choice columns that need **`{Value: "..."}`**, not plain text — same Record-shaped Choice type
+  discovered earlier when reading these columns off a row (see the `App.OnStart` notes on `blankDemande`), it turns
+  out to apply symmetrically when writing them back too.
+- The multi-select fields (`SystemesAcces`, `SystemePOSHebergement`, `Equipements`, `Applications`) do **not** need
+  this treatment — `Filter(colX, Selected).Value` already produces a table of `{Value: "..."}` records via the same
+  dot-projection behavior noted above, which happens to already be the exact shape these columns expect.
 
 **[decide in Studio]** Request numbering: `createEmptyRequest()` hardcodes `"INT-2025-00024"` as a placeholder — the
 prototype never actually generates one. A real scheme (e.g. `"INT-" & Text(Year(Now())) & "-" & Text(CountRows(DEMANDES) + 1, "00000")`,
@@ -552,15 +588,23 @@ btnSoumettre.OnSelect =
                 Defaults(DEMANDES),
                 {
                     Title: <numérotation — voir note ci-dessus>,
-                    TypeDemande: gblTypeDemande,
-                    Employes: colEmployesOffboarding,
-                    Statut: "Soumise",
-                    DemandePar: User().FullName,
+                    TypeDemande: {Value: gblTypeDemande},
+                    Employes: ForAll(colEmployesOffboarding, {Id: ID, Value: Title}),
+                    Statut: {Value: "Soumise"},
+                    DemandePar: {
+                        '@odata.type': "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedUser",
+                        Claims: "i:0#.f|membership|" & Lower(User().Email),
+                        Department: "",
+                        DisplayName: User().FullName,
+                        Email: User().Email,
+                        JobTitle: "",
+                        Picture: ""
+                    },
                     DerniereJournee: gblDemande.DerniereJournee,
-                    IndemniteVacances: gblDemande.IndemniteVacances,
-                    RaisonArret: gblDemande.RaisonArret,
+                    IndemniteVacances: {Value: gblDemande.IndemniteVacances},
+                    RaisonArret: {Value: gblDemande.RaisonArret},
                     DetailsRaison: gblDemande.DetailsRaison,
-                    Reembaucheriez: gblDemande.Reembaucheriez,
+                    Reembaucheriez: {Value: gblDemande.Reembaucheriez},
                     CommentairesIT: gblDemande.CommentairesIT,
                     CommentairesParkingAcces: gblDemande.CommentairesParkingAcces,
                     CommentairesRedingote: gblDemande.CommentairesRedingote
@@ -581,6 +625,11 @@ btnSoumettre.OnSelect =
 
 `If(!IsBlank(gblCommentaireRH), ...)` avoids creating an empty row in the restricted list when the manager left the
 RH box blank — matches the prototype, which never required it.
+
+Same field-shape notes as the onboarding submit apply here (Person column, Choice columns needing `{Value: "..."}`)
+— `Employes` here uses `ForAll(colEmployesOffboarding, {Id: ID, Value: Title})` instead of onboarding's single
+`Table({Id: ..., Value: ...})`, since offboarding can have several employees: it maps every row already sitting in
+the collection into the `{Id, Value}` shape the Lookup column expects, rather than wrapping just one selection.
 
 ## Open decisions carried over from this doc
 
