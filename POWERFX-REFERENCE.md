@@ -204,10 +204,26 @@ galItem.Fill / icon = Switch(true,
     DefaultStyle /* show ThisItem.Numero */
 )
 
-// OnSelect — goToStep() has no restriction to already-visited steps; any nav item is clickable at any time
+// OnSelect — goToStep() has no restriction to already-visited steps; any nav item is clickable at any time.
+// Navigate() cannot take a dynamically-resolved string — ThisItem.Ecran is Text, not a screen reference, so it
+// has to be routed through a Switch() that maps each possible Ecran value to the actual static screen object.
+// This same Switch pattern is repeated at every navigation call site below for the same reason.
 galItem.OnSelect = Set(gblCurrentStep, ThisItem.Numero);
     Set(gblFurthestStep, Max(gblFurthestStep, ThisItem.Numero));
-    Navigate(ThisItem.Ecran, ScreenTransition.None)
+    Navigate(
+        Switch(ThisItem.Ecran,
+            "scrEmploye", scrEmploye,
+            "scrPoste", scrPoste,
+            "scrAcces", scrAcces,
+            "scrEquipement", scrEquipement,
+            "scrApplications", scrApplications,
+            "scrRevisionOnboarding", scrRevisionOnboarding,
+            "scrCessation", scrCessation,
+            "scrCommentaires", scrCommentaires,
+            "scrRevisionOffboarding", scrRevisionOffboarding
+        ),
+        ScreenTransition.None
+    )
 ```
 
 ### `cmpStepFooter` (→ `StepFooter.tsx`)
@@ -216,7 +232,20 @@ galItem.OnSelect = Set(gblCurrentStep, ThisItem.Numero);
 btnPrecedent.Visible = gblCurrentStep > 1
 btnPrecedent.OnSelect =
     Set(gblCurrentStep, gblCurrentStep - 1);
-    Navigate(LookUp(StepsActives, Numero = gblCurrentStep).Ecran, ScreenTransition.None)
+    Navigate(
+        Switch(LookUp(StepsActives, Numero = gblCurrentStep).Ecran,
+            "scrEmploye", scrEmploye,
+            "scrPoste", scrPoste,
+            "scrAcces", scrAcces,
+            "scrEquipement", scrEquipement,
+            "scrApplications", scrApplications,
+            "scrRevisionOnboarding", scrRevisionOnboarding,
+            "scrCessation", scrCessation,
+            "scrCommentaires", scrCommentaires,
+            "scrRevisionOffboarding", scrRevisionOffboarding
+        ),
+        ScreenTransition.None
+    )
 
 // isLast ? "Soumettre" : "Suivant"
 btnSuivant.Visible = gblCurrentStep < NombreEtapes
@@ -224,7 +253,20 @@ btnSuivant.DisplayMode = If(EtapeCouranteValide, DisplayMode.Edit, DisplayMode.D
 btnSuivant.OnSelect =
     Set(gblCurrentStep, gblCurrentStep + 1);
     Set(gblFurthestStep, Max(gblFurthestStep, gblCurrentStep));
-    Navigate(LookUp(StepsActives, Numero = gblCurrentStep).Ecran, ScreenTransition.None)
+    Navigate(
+        Switch(LookUp(StepsActives, Numero = gblCurrentStep).Ecran,
+            "scrEmploye", scrEmploye,
+            "scrPoste", scrPoste,
+            "scrAcces", scrAcces,
+            "scrEquipement", scrEquipement,
+            "scrApplications", scrApplications,
+            "scrRevisionOnboarding", scrRevisionOnboarding,
+            "scrCessation", scrCessation,
+            "scrCommentaires", scrCommentaires,
+            "scrRevisionOffboarding", scrRevisionOffboarding
+        ),
+        ScreenTransition.None
+    )
 
 btnSoumettre.Visible = gblCurrentStep = NombreEtapes
 // OnSelect defined per review screen below (submit payload differs by flow)
