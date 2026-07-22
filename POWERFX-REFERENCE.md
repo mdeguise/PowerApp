@@ -196,6 +196,15 @@ EtapeCouranteValide = If(
 
 Gallery, `Items = StepsActives`.
 
+**Every gallery in this doc needs an explicit `TemplateSize` — this one included.** `Self.TemplateHeight` is a
+**read-only output**, not something you can drive; a `Height` formula like `CountRows(Self.AllItems) * Self.TemplateHeight`
+multiplies against an undriven value and silently collapses the gallery to render far fewer rows than it should
+(discovered when `SystemesAcces` showed 1 of 3 options — every other gallery had the same latent bug, just not yet
+visibly triggered). Set `TemplateSize` directly instead, sized to the row content: `44` for toggle-chip galleries
+(`SystemesAcces`, `SystemePOSHebergement`, `Equipements`, `Applications`), `32` for tag-pill galleries
+(`galTagsSystemesAcces` and friends on the review screens), `56` for two-line employee-list rows
+(`galResultats`, `galResultatsMulti`, `galSelectionnes`), and similarly for this step-nav gallery.
+
 ```
 // per-item icon/state — isDone = index < furthestStep && !isActive, from StepNav.tsx
 galItem.Fill / icon = Switch(true,
